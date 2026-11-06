@@ -2,6 +2,7 @@
   "domain": "kamstir",
   "name": "Kamst-IR Gateway",
   "after_dependencies": ["mqtt"],
+  "categories": ["energy.meters_monitoring"],
   "codeowners": ["@grigals"],
   "config_flow": true,
   "documentation": "https://github.com/grigals/kamst_ir_gateway-ha-integration",
