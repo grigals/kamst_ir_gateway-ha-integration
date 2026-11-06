@@ -28,8 +28,17 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_METER_TYPE, METER_HEAT, METER_WATER
-from .coordinator import KamstirConfigEntry, KamstirCoordinator
+from .const import (
+    CONF_ENERGY_UNIT,
+    CONF_METER_TYPE,
+    DEFAULT_ENERGY_UNIT,
+    ENERGY_UNIT_GJ,
+    ENERGY_UNIT_KWH,
+    ENERGY_UNIT_MWH,
+    METER_HEAT,
+    METER_WATER,
+)
+from .coordinator import KamstirConfigEntry, KamstirCoordinator, merged_config
 from .entity import KamstirEntity
 
 PARALLEL_UPDATES = 0
@@ -108,6 +117,15 @@ _POWER: dict[str, Any] = {
 }
 _DIAGNOSTIC: dict[str, Any] = {"entity_category": EntityCategory.DIAGNOSTIC}
 
+# Energy sensors take their unit from the entry; precision matches the meter
+# display (MULTICAL shows MWh and GJ with 3 decimals, kWh as whole numbers).
+_ENERGY_KEYS = frozenset({"heat_energy", "cooling_energy"})
+_ENERGY_UNITS: dict[str, tuple[str, int]] = {
+    ENERGY_UNIT_MWH: (UnitOfEnergy.MEGA_WATT_HOUR, 3),
+    ENERGY_UNIT_GJ: (UnitOfEnergy.GIGA_JOULE, 3),
+    ENERGY_UNIT_KWH: (UnitOfEnergy.KILO_WATT_HOUR, 0),
+}
+
 _STAT_KINDS: dict[str, dict[str, Any]] = {
     "minflow": _FLOW,
     "maxflow": _FLOW,
@@ -124,13 +142,11 @@ SENSORS: tuple[KamstirSensorEntityDescription, ...] = (
     _sensor(
         "heat_energy",
         enabled_for=HEAT,
-        native_unit_of_measurement=UnitOfEnergy.GIGA_JOULE,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
     _sensor(
         "cooling_energy",
-        native_unit_of_measurement=UnitOfEnergy.GIGA_JOULE,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
@@ -225,10 +241,11 @@ async def async_setup_entry(
     coordinator = entry.runtime_data
     data = coordinator.data or {}
     meter_type = entry.data.get(CONF_METER_TYPE, METER_HEAT)
+    energy_unit = merged_config(entry).get(CONF_ENERGY_UNIT, DEFAULT_ENERGY_UNIT)
     # Create every known field the payload carries. With no payload yet (MQTT
     # mode, gateway not answering REST) create them all.
     async_add_entities(
-        KamstirSensor(coordinator, description, meter_type)
+        KamstirSensor(coordinator, description, meter_type, energy_unit)
         for description in SENSORS
         if not data or description.exists_fn(data)
     )
@@ -244,6 +261,7 @@ class KamstirSensor(KamstirEntity, SensorEntity):
         coordinator: KamstirCoordinator,
         description: KamstirSensorEntityDescription,
         meter_type: str,
+        energy_unit: str = DEFAULT_ENERGY_UNIT,
     ) -> None:
         """Initialise the sensor."""
         super().__init__(coordinator, description.key)
@@ -251,6 +269,12 @@ class KamstirSensor(KamstirEntity, SensorEntity):
         self._attr_entity_registry_enabled_default = (
             meter_type in description.enabled_for
         )
+        if description.key in _ENERGY_KEYS:
+            unit, precision = _ENERGY_UNITS.get(
+                energy_unit, _ENERGY_UNITS[DEFAULT_ENERGY_UNIT]
+            )
+            self._attr_native_unit_of_measurement = unit
+            self._attr_suggested_display_precision = precision
 
     @property
     def native_value(self) -> StateType | datetime:

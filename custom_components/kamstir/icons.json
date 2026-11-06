@@ -1,6 +1,8 @@
 {
   "entity": {
     "sensor": {
+      "heat_energy": { "default": "mdi:meter-electric" },
+      "cooling_energy": { "default": "mdi:meter-electric" },
       "tempdiff": { "default": "mdi:thermometer-lines" },
       "infoevent": { "default": "mdi:information-outline" },
       "leak_burst": { "default": "mdi:pipe-leak" },

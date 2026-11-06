@@ -9,6 +9,7 @@
           "port": "Port",
           "name": "Name",
           "meter_type": "Meter type",
+          "energy_unit": "Energy unit",
           "mode": "Connection mode"
         },
         "data_description": {
@@ -16,6 +17,7 @@
           "port": "Web server port of the gateway, normally 82.",
           "name": "Device name in Home Assistant, for example \"Kamstrup K1\".",
           "meter_type": "Decides which sensors are enabled by default. You can enable any sensor later.",
+          "energy_unit": "The unit shown on the meter display. The gateway passes the meter's value on as-is, so this must match the meter.",
           "mode": "REST polls the gateway. MQTT receives the values the gateway publishes to your MQTT broker."
         }
       },
@@ -57,11 +59,13 @@
         "description": "MQTT topic prefix example: `{example}`.",
         "data": {
           "scan_interval": "Scan interval",
+          "energy_unit": "Energy unit",
           "mode": "Connection mode",
           "mqtt_prefix": "Topic prefix"
         },
         "data_description": {
           "scan_interval": "REST mode only. The gateway reads the meter optically at its own interval, so polling faster than that adds nothing.",
+          "energy_unit": "The unit shown on the meter display. The gateway passes the meter's value on as-is, so this must match the meter.",
           "mode": "REST polls the gateway. MQTT receives the values the gateway publishes.",
           "mqtt_prefix": "Required for MQTT mode. `kamstir` if the gateway's PREFIX field is blank."
         }
@@ -78,6 +82,13 @@
       "options": {
         "heat": "Heat meter",
         "water": "Water meter"
+      }
+    },
+    "energy_unit": {
+      "options": {
+        "mwh": "MWh",
+        "gj": "GJ",
+        "kwh": "kWh"
       }
     },
     "mode": {

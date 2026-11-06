@@ -16,10 +16,13 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 )
 
 from custom_components.kamstir.const import (
+    CONF_ENERGY_UNIT,
     CONF_METER_TYPE,
     CONF_MODE,
     CONF_MQTT_PREFIX,
     DOMAIN,
+    ENERGY_UNIT_GJ,
+    ENERGY_UNIT_MWH,
     METER_HEAT,
     METER_WATER,
     MODE_MQTT,
@@ -47,6 +50,7 @@ def user_input(**overrides: Any) -> dict[str, Any]:
         CONF_PORT: PORT,
         CONF_NAME: "Kamstrup K1",
         CONF_METER_TYPE: METER_HEAT,
+        CONF_ENERGY_UNIT: ENERGY_UNIT_MWH,
         CONF_MODE: MODE_REST,
         **overrides,
     }
@@ -77,7 +81,11 @@ async def test_user_rest(
         CONF_PORT: 82,
         CONF_METER_TYPE: METER_HEAT,
     }
-    assert result["options"] == {CONF_SCAN_INTERVAL: 60, CONF_MODE: MODE_REST}
+    assert result["options"] == {
+        CONF_SCAN_INTERVAL: 60,
+        CONF_ENERGY_UNIT: ENERGY_UNIT_MWH,
+        CONF_MODE: MODE_REST,
+    }
     assert result["result"].unique_id == MAC
 
 
@@ -178,6 +186,7 @@ async def test_user_mqtt(
     assert result["data"][CONF_METER_TYPE] == METER_WATER
     assert result["options"] == {
         CONF_SCAN_INTERVAL: 60,
+        CONF_ENERGY_UNIT: ENERGY_UNIT_MWH,
         CONF_MODE: MODE_MQTT,
         CONF_MQTT_PREFIX: PREFIX,
     }
@@ -321,10 +330,19 @@ async def test_options_rest(
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["step_id"] == "init"
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {CONF_SCAN_INTERVAL: 120.0, CONF_MODE: MODE_REST}
+        result["flow_id"],
+        {
+            CONF_SCAN_INTERVAL: 120.0,
+            CONF_ENERGY_UNIT: ENERGY_UNIT_GJ,
+            CONF_MODE: MODE_REST,
+        },
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert entry.options == {CONF_SCAN_INTERVAL: 120, CONF_MODE: MODE_REST}
+    assert entry.options == {
+        CONF_SCAN_INTERVAL: 120,
+        CONF_ENERGY_UNIT: ENERGY_UNIT_GJ,
+        CONF_MODE: MODE_REST,
+    }
     await hass.async_block_till_done()
     assert entry.runtime_data.update_interval.total_seconds() == 120
 
@@ -362,3 +380,14 @@ async def test_options_mqtt_not_configured(
         {CONF_SCAN_INTERVAL: 60, CONF_MODE: MODE_MQTT, CONF_MQTT_PREFIX: PREFIX},
     )
     assert result["errors"] == {"base": "mqtt_not_configured"}
+
+
+async def test_user_energy_unit(
+    hass: HomeAssistant, mock_gateway: AiohttpClientMocker
+) -> None:
+    """The chosen energy unit is stored in the options."""
+    result = await start_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input(**{CONF_ENERGY_UNIT: ENERGY_UNIT_GJ})
+    )
+    assert result["options"][CONF_ENERGY_UNIT] == ENERGY_UNIT_GJ

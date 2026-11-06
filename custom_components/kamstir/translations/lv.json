@@ -9,6 +9,7 @@
           "port": "Ports",
           "name": "Nosaukums",
           "meter_type": "Skaitītāja tips",
+          "energy_unit": "Enerģijas mērvienība",
           "mode": "Savienojuma režīms"
         },
         "data_description": {
@@ -16,6 +17,7 @@
           "port": "Vārtejas tīmekļa servera ports, parasti 82.",
           "name": "Ierīces nosaukums Home Assistant, piemēram, \"Kamstrup K1\".",
           "meter_type": "Nosaka, kuri sensori ir ieslēgti pēc noklusējuma. Jebkuru sensoru var ieslēgt vēlāk.",
+          "energy_unit": "Mērvienība, ko rāda skaitītāja displejs. Vārteja nodod skaitītāja vērtību nemainītu, tāpēc tai jāsakrīt ar skaitītāju.",
           "mode": "REST periodiski nolasa vārteju. MQTT saņem vērtības, ko vārteja publicē jūsu MQTT brokerī."
         }
       },
@@ -57,11 +59,13 @@
         "description": "MQTT tēmas prefiksa piemērs: `{example}`.",
         "data": {
           "scan_interval": "Nolasīšanas intervāls",
+          "energy_unit": "Enerģijas mērvienība",
           "mode": "Savienojuma režīms",
           "mqtt_prefix": "Tēmas prefikss"
         },
         "data_description": {
           "scan_interval": "Tikai REST režīmā. Vārteja nolasa skaitītāju optiski ar savu intervālu, tāpēc biežāka nolasīšana neko nedod.",
+          "energy_unit": "Mērvienība, ko rāda skaitītāja displejs. Vārteja nodod skaitītāja vērtību nemainītu, tāpēc tai jāsakrīt ar skaitītāju.",
           "mode": "REST periodiski nolasa vārteju. MQTT saņem vērtības, ko vārteja publicē.",
           "mqtt_prefix": "Obligāts MQTT režīmā. `kamstir`, ja vārtejas lauks PREFIX ir tukšs."
         }
@@ -78,6 +82,13 @@
       "options": {
         "heat": "Siltumenerģijas skaitītājs",
         "water": "Ūdens skaitītājs"
+      }
+    },
+    "energy_unit": {
+      "options": {
+        "mwh": "MWh",
+        "gj": "GJ",
+        "kwh": "kWh"
       }
     },
     "mode": {

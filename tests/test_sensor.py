@@ -61,7 +61,7 @@ async def test_heat_values(
 
     state = hass.states.get("sensor.kamstrup_k1_heat_energy")
     assert state.state == "1234.567"
-    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == "GJ"
+    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == "MWh"
     assert state.attributes[ATTR_DEVICE_CLASS] == "energy"
     assert state.attributes[ATTR_STATE_CLASS] == SensorStateClass.TOTAL_INCREASING
 
@@ -342,3 +342,26 @@ async def test_legacy_yaml_repair(
     mock_gateway.get(url(HOST2), json=load_payload("read_water.json"))
     await setup_entry(hass, entry2)
     assert issue_registry.async_get_issue(DOMAIN, ISSUE_LEGACY_YAML) is None
+
+
+@pytest.mark.parametrize(
+    ("energy_unit", "unit", "precision"),
+    [("mwh", "MWh", 3), ("gj", "GJ", 3), ("kwh", "kWh", 0)],
+)
+async def test_energy_unit_option(
+    hass: HomeAssistant,
+    mock_gateway: AiohttpClientMocker,
+    entity_registry: er.EntityRegistry,
+    energy_unit: str,
+    unit: str,
+    precision: int,
+) -> None:
+    """Energy sensors use the configured unit and the meter's precision."""
+    await setup_entry(hass, make_entry(energy_unit=energy_unit))
+
+    entity_id = "sensor.kamstrup_k1_heat_energy"
+    entry = entity_registry.async_get(entity_id)
+    assert entry.options["sensor"]["suggested_display_precision"] == precision
+    state = hass.states.get(entity_id)
+    assert state.state == "1234.567"
+    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == unit

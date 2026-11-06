@@ -7,7 +7,7 @@ YAML packages.
 
 - **REST polling** (default) or **MQTT push**, chosen per gateway.
 - **Several gateways**: add the integration once per gateway.
-- Heat energy works in the **Energy dashboard** (GJ, `total_increasing`).
+- Heat energy works in the **Energy dashboard** (MWh, GJ or kWh, `total_increasing`).
 - Firmware **update entity**. Install is available in MQTT mode.
 - Diagnostics download, reconfigure flow, English and Latvian translations.
 
@@ -52,6 +52,7 @@ extract it to `config/custom_components/kamstir/` and restart Home Assistant.
 | Port | Default `82` |
 | Name | Device name, e.g. `Kamstrup K1`. Entity IDs follow it: `sensor.kamstrup_k1_heat_energy` |
 | Meter type | Heat or water. Decides which sensors are enabled by default |
+| Energy unit | The unit on the meter display: MWh (default), GJ or kWh |
 | Connection mode | REST polling or MQTT push |
 
 The gateway has to answer `http://<host>:82/kamst-ir/api/read` during setup.
@@ -89,7 +90,7 @@ this integration doesn't use.
 
 ## Entities
 
-The main sensors are heat energy (GJ), power (kW), supply and return
+The main sensors are heat energy (MWh, GJ or kWh), power (kW), supply and return
 temperature (°C), temperature difference (K), flow (L/h), volume (m³) and
 operating hours. There are also month and year min/max/average statistics,
 diagnostics (WiFi signal, last restart, info code), a *Connected* binary sensor,
@@ -102,9 +103,11 @@ instead. You can enable any other entity on the device page.
 
 **Units.** Power is instantaneous power in **kW**. The vendor YAML labels it
 kWh, but Kamstrup meters report kW, and the vendor's own dashboard gauge shows
-kW. Heat energy is reported in **GJ**. To see it in kWh or MWh, change the
-display unit in the entity settings; HA converts the value and keeps the
-statistics.
+kW. Heat energy is sent in whatever unit the meter is configured for, so set
+**Energy unit** (MWh, GJ or kWh; default MWh) to the unit on the meter display,
+when adding the gateway or later under *Configure*. MWh and GJ are shown with
+3 decimals and kWh as whole numbers, like the meter. To show the value in a
+different unit, change the display unit in the entity settings; HA converts it.
 
 **Dates.** The month/year min/max date fields are date sensors. *Meter clock*
 combines `device_date` and `device_time` into one timestamp, in Home

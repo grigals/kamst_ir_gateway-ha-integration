@@ -11,6 +11,15 @@ MANUFACTURER: Final = "Smart Gateways"
 CONF_METER_TYPE: Final = "meter_type"
 CONF_MODE: Final = "mode"
 CONF_MQTT_PREFIX: Final = "mqtt_prefix"
+CONF_ENERGY_UNIT: Final = "energy_unit"
+
+# The gateway passes on the meter's energy register as-is, in whatever unit the
+# meter is configured for. The user picks the unit shown on the meter display.
+ENERGY_UNIT_MWH: Final = "mwh"
+ENERGY_UNIT_GJ: Final = "gj"
+ENERGY_UNIT_KWH: Final = "kwh"
+ENERGY_UNITS: Final = (ENERGY_UNIT_MWH, ENERGY_UNIT_GJ, ENERGY_UNIT_KWH)
+DEFAULT_ENERGY_UNIT: Final = ENERGY_UNIT_MWH
 
 METER_HEAT: Final = "heat"
 METER_WATER: Final = "water"

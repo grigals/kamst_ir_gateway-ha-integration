@@ -27,14 +27,17 @@ import voluptuous as vol
 
 from .api import CannotConnect, InvalidResponse, KamstirClient, normalize_mac
 from .const import (
+    CONF_ENERGY_UNIT,
     CONF_METER_TYPE,
     CONF_MODE,
     CONF_MQTT_PREFIX,
+    DEFAULT_ENERGY_UNIT,
     DEFAULT_MQTT_PREFIX,
     DEFAULT_NAME,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    ENERGY_UNITS,
     MAX_SCAN_INTERVAL,
     METER_HEAT,
     METER_TYPES,
@@ -58,6 +61,13 @@ METER_SELECTOR = SelectSelector(
         options=list(METER_TYPES),
         translation_key=CONF_METER_TYPE,
         mode=SelectSelectorMode.LIST,
+    )
+)
+ENERGY_UNIT_SELECTOR = SelectSelector(
+    SelectSelectorConfig(
+        options=list(ENERGY_UNITS),
+        translation_key=CONF_ENERGY_UNIT,
+        mode=SelectSelectorMode.DROPDOWN,
     )
 )
 MODE_SELECTOR = SelectSelector(
@@ -146,6 +156,7 @@ class KamstirConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialise the flow."""
         self._data: dict[str, Any] = {}
         self._name = DEFAULT_NAME
+        self._energy_unit = DEFAULT_ENERGY_UNIT
 
     @staticmethod
     @callback
@@ -173,6 +184,7 @@ class KamstirConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_PORT: port,
                     CONF_METER_TYPE: user_input[CONF_METER_TYPE],
                 }
+                self._energy_unit = user_input[CONF_ENERGY_UNIT]
                 if user_input[CONF_MODE] == MODE_MQTT:
                     return await self.async_step_mqtt()
                 return self._create({CONF_MODE: MODE_REST})
@@ -190,6 +202,10 @@ class KamstirConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     CONF_METER_TYPE, default=defaults.get(CONF_METER_TYPE, METER_HEAT)
                 ): METER_SELECTOR,
+                vol.Required(
+                    CONF_ENERGY_UNIT,
+                    default=defaults.get(CONF_ENERGY_UNIT, DEFAULT_ENERGY_UNIT),
+                ): ENERGY_UNIT_SELECTOR,
                 vol.Required(
                     CONF_MODE, default=defaults.get(CONF_MODE, MODE_REST)
                 ): MODE_SELECTOR,
@@ -229,7 +245,11 @@ class KamstirConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(
             title=self._name,
             data=self._data,
-            options={CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL, **options},
+            options={
+                CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+                CONF_ENERGY_UNIT: self._energy_unit,
+                **options,
+            },
         )
 
     async def async_step_reconfigure(
@@ -293,6 +313,7 @@ class KamstirOptionsFlow(OptionsFlowWithReload):
             options: dict[str, Any] = {
                 CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
                 CONF_MODE: mode,
+                CONF_ENERGY_UNIT: user_input[CONF_ENERGY_UNIT],
             }
             raw_prefix = user_input.get(CONF_MQTT_PREFIX)
             prefix = clean_prefix(raw_prefix)
@@ -314,6 +335,10 @@ class KamstirOptionsFlow(OptionsFlowWithReload):
                     CONF_SCAN_INTERVAL,
                     default=values.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
                 ): SCAN_SELECTOR,
+                vol.Required(
+                    CONF_ENERGY_UNIT,
+                    default=values.get(CONF_ENERGY_UNIT, DEFAULT_ENERGY_UNIT),
+                ): ENERGY_UNIT_SELECTOR,
                 vol.Required(
                     CONF_MODE, default=values.get(CONF_MODE, MODE_REST)
                 ): MODE_SELECTOR,
