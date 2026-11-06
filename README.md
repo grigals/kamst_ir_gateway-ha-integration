@@ -13,6 +13,19 @@ YAML packages.
 
 Requires Home Assistant 2025.12 or newer. It has no extra Python dependencies.
 
+> [!WARNING]
+> **Unofficial project, use at your own risk.** This integration is not
+> affiliated with, endorsed by or supported by Smart Gateways (smartgateways.nl),
+> Kamstrup or the Home Assistant project. It was written from the gateway's
+> public behaviour and documentation, not from any vendor specification.
+> Product names and trademarks belong to their owners and are used only to say
+> what this integration works with.
+>
+> The *Restart* button and the firmware *Install* action send commands to your
+> gateway. Readings are for information only and must not be used for billing.
+> The software is provided "as is", without warranty of any kind; see
+> [LICENSE](LICENSE).
+
 ## Installation
 
 ### HACS (recommended)
