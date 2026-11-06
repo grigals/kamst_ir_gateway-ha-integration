@@ -1,0 +1,25 @@
+{
+  "entity": {
+    "sensor": {
+      "tempdiff": { "default": "mdi:thermometer-lines" },
+      "infoevent": { "default": "mdi:information-outline" },
+      "leak_burst": { "default": "mdi:pipe-leak" },
+      "battery_days_left": { "default": "mdi:battery-clock" },
+      "hourcounter": { "default": "mdi:timer-outline" },
+      "temp1xm3": { "default": "mdi:thermometer-water" },
+      "temp2xm3": { "default": "mdi:thermometer-water" },
+      "minflowdate_m": { "default": "mdi:calendar" },
+      "maxflowdate_m": { "default": "mdi:calendar" },
+      "minpowerdate_m": { "default": "mdi:calendar" },
+      "maxpowerdate_m": { "default": "mdi:calendar" },
+      "minflowdate_y": { "default": "mdi:calendar" },
+      "maxflowdate_y": { "default": "mdi:calendar" },
+      "minpowerdate_y": { "default": "mdi:calendar" },
+      "maxpowerdate_y": { "default": "mdi:calendar" },
+      "mqtt_server": { "default": "mdi:server-network" }
+    },
+    "binary_sensor": {
+      "mqtt_configured": { "default": "mdi:lan-connect" }
+    }
+  }
+}

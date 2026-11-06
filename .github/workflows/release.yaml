@@ -1,0 +1,60 @@
+name: Release
+
+# Push a tag like v0.1.0 to publish a release. The tag must match the
+# "version" in manifest.json. Tags ending in a/b/rc + number (v0.2.0b1) are
+# marked as pre-releases, which HACS only offers to users who opt in.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build the release asset for"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    env:
+      TAG_NAME: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG_NAME }}
+
+      - name: Check tag matches manifest version
+        run: |
+          version=$(python -c "import json; print(json.load(open('custom_components/kamstir/manifest.json'))['version'])")
+          if [ "v$version" != "$TAG_NAME" ]; then
+            echo "::error::Tag $TAG_NAME does not match manifest version $version"
+            exit 1
+          fi
+
+      - name: Build kamstir.zip
+        run: |
+          cd custom_components/kamstir
+          zip -r "$GITHUB_WORKSPACE/kamstir.zip" . -x "__pycache__/*" "*.pyc"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG_NAME" > /dev/null 2>&1; then
+            exit 0
+          fi
+          extra=()
+          if [[ "$TAG_NAME" =~ (a|b|rc)[0-9]+$ ]]; then
+            extra+=(--prerelease)
+          fi
+          gh release create "$TAG_NAME" --title "$TAG_NAME" --generate-notes "${extra[@]}"
+
+      - name: Upload asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG_NAME" kamstir.zip --clobber

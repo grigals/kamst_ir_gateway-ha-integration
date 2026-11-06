@@ -1,0 +1,244 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pievienot Kamst-IR vārteju",
+        "description": "Ievadiet vārtejas adresi. Katra vārteja kļūst par atsevišķu ierīci.",
+        "data": {
+          "host": "Resursdators",
+          "port": "Ports",
+          "name": "Nosaukums",
+          "meter_type": "Skaitītāja tips",
+          "mode": "Savienojuma režīms"
+        },
+        "data_description": {
+          "host": "Vārtejas IP adrese vai resursdatora nosaukums.",
+          "port": "Vārtejas tīmekļa servera ports, parasti 82.",
+          "name": "Ierīces nosaukums Home Assistant, piemēram, \"Kamstrup K1\".",
+          "meter_type": "Nosaka, kuri sensori ir ieslēgti pēc noklusējuma. Jebkuru sensoru var ieslēgt vēlāk.",
+          "mode": "REST periodiski nolasa vārteju. MQTT saņem vērtības, ko vārteja publicē jūsu MQTT brokerī."
+        }
+      },
+      "mqtt": {
+        "title": "MQTT tēmas prefikss",
+        "description": "Ievadiet tēmas bāzi, zem kuras vārteja publicē: daļu pirms `/reading/…` un `/smart_gateways/…`. Ja vārtejas tīmekļa saskarnē lauks PREFIX ir tukšs, tā ir `kamstir`. Katrai vārtejai vajag savu, piemēram, `{example}`.",
+        "data": {
+          "mqtt_prefix": "Tēmas prefikss"
+        }
+      },
+      "reconfigure": {
+        "title": "Pārkonfigurēt vārteju",
+        "description": "Mainiet vārtejas adresi vai MQTT prefiksu. Entītijas un vēsture tiek saglabātas.",
+        "data": {
+          "host": "Resursdators",
+          "port": "Ports",
+          "mqtt_prefix": "Tēmas prefikss"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nevar sasniegt vārteju. Pārbaudiet resursdatoru un portu.",
+      "invalid_response": "Ierīce atbildēja, bet ne kā Kamst-IR vārteja (nav JSON rādījumu vai MAC adreses).",
+      "invalid_prefix": "Ievadiet tēmas prefiksu bez aizstājējzīmēm + vai #.",
+      "unknown": "Neparedzēta kļūda. Sīkāk skatiet žurnālā.",
+      "prefix_in_use": "Šo tēmas prefiksu jau izmanto cita vārteja."
+    },
+    "abort": {
+      "already_configured": "Šī vārteja jau ir konfigurēta.",
+      "mqtt_not_configured": "Vispirms iestatiet MQTT integrāciju, tad pievienojiet vārteju vēlreiz.",
+      "wrong_device": "Šī adrese pieder citai vārtejai (MAC adrese nesakrīt).",
+      "reconfigure_successful": "Vārteja ir pārkonfigurēta."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Vārtejas iestatījumi",
+        "description": "MQTT tēmas prefiksa piemērs: `{example}`.",
+        "data": {
+          "scan_interval": "Nolasīšanas intervāls",
+          "mode": "Savienojuma režīms",
+          "mqtt_prefix": "Tēmas prefikss"
+        },
+        "data_description": {
+          "scan_interval": "Tikai REST režīmā. Vārteja nolasa skaitītāju optiski ar savu intervālu, tāpēc biežāka nolasīšana neko nedod.",
+          "mode": "REST periodiski nolasa vārteju. MQTT saņem vērtības, ko vārteja publicē.",
+          "mqtt_prefix": "Obligāts MQTT režīmā. `kamstir`, ja vārtejas lauks PREFIX ir tukšs."
+        }
+      }
+    },
+    "error": {
+      "invalid_prefix": "Ievadiet tēmas prefiksu bez aizstājējzīmēm + vai #.",
+      "mqtt_not_configured": "Vispirms iestatiet MQTT integrāciju.",
+      "prefix_in_use": "Šo tēmas prefiksu jau izmanto cita vārteja."
+    }
+  },
+  "selector": {
+    "meter_type": {
+      "options": {
+        "heat": "Siltumenerģijas skaitītājs",
+        "water": "Ūdens skaitītājs"
+      }
+    },
+    "mode": {
+      "options": {
+        "rest": "REST nolasīšana",
+        "mqtt": "MQTT push"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connected": {
+        "name": "Savienots"
+      },
+      "mqtt_configured": {
+        "name": "MQTT konfigurēts"
+      }
+    },
+    "sensor": {
+      "heat_energy": {
+        "name": "Siltumenerģija"
+      },
+      "cooling_energy": {
+        "name": "Dzesēšanas enerģija"
+      },
+      "power": {
+        "name": "Jauda"
+      },
+      "temp1": {
+        "name": "Turpgaitas temperatūra"
+      },
+      "temp2": {
+        "name": "Atgaitas temperatūra"
+      },
+      "tempdiff": {
+        "name": "Temperatūru starpība"
+      },
+      "flow": {
+        "name": "Plūsma"
+      },
+      "volume": {
+        "name": "Tilpums"
+      },
+      "hourcounter": {
+        "name": "Darba stundas"
+      },
+      "infoevent": {
+        "name": "Info kods"
+      },
+      "water_temp": {
+        "name": "Ūdens temperatūra"
+      },
+      "meter_temp": {
+        "name": "Skaitītāja temperatūra"
+      },
+      "battery_days_left": {
+        "name": "Baterijas atlikušās dienas"
+      },
+      "leak_burst": {
+        "name": "Noplūde / plīsums"
+      },
+      "temp1xm3": {
+        "name": "Temp × tilpums (turpgaita)"
+      },
+      "temp2xm3": {
+        "name": "Temp × tilpums (atgaita)"
+      },
+      "minflow_m": {
+        "name": "Min. plūsma (mēnesis)"
+      },
+      "maxflow_m": {
+        "name": "Maks. plūsma (mēnesis)"
+      },
+      "minpower_m": {
+        "name": "Min. jauda (mēnesis)"
+      },
+      "maxpower_m": {
+        "name": "Maks. jauda (mēnesis)"
+      },
+      "avgtemp1_m": {
+        "name": "Vid. turpgaitas temperatūra (mēnesis)"
+      },
+      "avgtemp2_m": {
+        "name": "Vid. atgaitas temperatūra (mēnesis)"
+      },
+      "minflowdate_m": {
+        "name": "Min. plūsmas datums (mēnesis)"
+      },
+      "maxflowdate_m": {
+        "name": "Maks. plūsmas datums (mēnesis)"
+      },
+      "minpowerdate_m": {
+        "name": "Min. jaudas datums (mēnesis)"
+      },
+      "maxpowerdate_m": {
+        "name": "Maks. jaudas datums (mēnesis)"
+      },
+      "minflow_y": {
+        "name": "Min. plūsma (gads)"
+      },
+      "maxflow_y": {
+        "name": "Maks. plūsma (gads)"
+      },
+      "minpower_y": {
+        "name": "Min. jauda (gads)"
+      },
+      "maxpower_y": {
+        "name": "Maks. jauda (gads)"
+      },
+      "avgtemp1_y": {
+        "name": "Vid. turpgaitas temperatūra (gads)"
+      },
+      "avgtemp2_y": {
+        "name": "Vid. atgaitas temperatūra (gads)"
+      },
+      "minflowdate_y": {
+        "name": "Min. plūsmas datums (gads)"
+      },
+      "maxflowdate_y": {
+        "name": "Maks. plūsmas datums (gads)"
+      },
+      "minpowerdate_y": {
+        "name": "Min. jaudas datums (gads)"
+      },
+      "maxpowerdate_y": {
+        "name": "Maks. jaudas datums (gads)"
+      },
+      "wifi_rssi": {
+        "name": "WiFi signāls"
+      },
+      "startup_time": {
+        "name": "Pēdējā restartēšana"
+      },
+      "mqtt_server": {
+        "name": "MQTT serveris"
+      },
+      "meter_clock": {
+        "name": "Skaitītāja pulkstenis"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Programmaparatūra"
+      }
+    }
+  },
+  "exceptions": {
+    "install_needs_mqtt": {
+      "message": "Programmaparatūru var instalēt tikai tad, ja vārteja ir savienota MQTT režīmā."
+    },
+    "restart_failed": {
+      "message": "Neizdevās restartēt vārteju: {error}"
+    },
+    "restart_auth_required": {
+      "message": "Vārteja pieprasīja pieteikšanos restartēšanai. Restartējiet to no tās tīmekļa saskarnes."
+    }
+  },
+  "issues": {
+    "legacy_yaml_entities": {
+      "title": "Vecie Kamst-IR YAML sensori joprojām pastāv",
+      "description": "Joprojām pastāv {count} entītijas no vecās MQTT YAML pakotnes: {entities}.\n\nTagad šos sensorus nodrošina Kamst-IR Gateway integrācija. Izdzēsiet vārtejas pakotnes failu (piemēram, `packages/kamstir_k1.yaml`) un restartējiet Home Assistant, lai neveidotos dublēti sensori. Nekas netiek dzēsts automātiski."
+    }
+  }
+}

@@ -1,0 +1,49 @@
+"""Constants for the Kamst-IR Gateway integration."""
+
+from __future__ import annotations
+
+from datetime import timedelta
+from typing import Final
+
+DOMAIN: Final = "kamstir"
+MANUFACTURER: Final = "Smart Gateways"
+
+CONF_METER_TYPE: Final = "meter_type"
+CONF_MODE: Final = "mode"
+CONF_MQTT_PREFIX: Final = "mqtt_prefix"
+
+METER_HEAT: Final = "heat"
+METER_WATER: Final = "water"
+METER_TYPES: Final = (METER_HEAT, METER_WATER)
+
+MODE_REST: Final = "rest"
+MODE_MQTT: Final = "mqtt"
+MODES: Final = (MODE_REST, MODE_MQTT)
+
+DEFAULT_NAME: Final = "Kamstrup"
+# Topic base when the PREFIX field in the gateway web UI is left blank.
+DEFAULT_MQTT_PREFIX: Final = "kamstir"
+DEFAULT_PORT: Final = 82
+DEFAULT_SCAN_INTERVAL: Final = 60
+MIN_SCAN_INTERVAL: Final = 30
+MAX_SCAN_INTERVAL: Final = 3600
+
+API_PATH: Final = "/kamst-ir/api/read"
+REBOOT_PATH: Final = "/reboot"
+REQUEST_TIMEOUT: Final = 10
+
+# REST: the gateway counts as connected while the last good poll is younger
+# than this many scan intervals.
+REST_CONNECTED_FACTOR: Final = 3
+# MQTT: data older than this is stale and the entities go unavailable.
+MQTT_STALE_AFTER: Final = timedelta(minutes=10)
+MQTT_WATCHDOG_INTERVAL: Final = timedelta(seconds=60)
+# Messages arrive one field per topic; batch them before notifying entities.
+MQTT_DEBOUNCE_SECONDS: Final = 1.0
+
+MQTT_TOPIC_GROUPS: Final = ("reading", "smart_gateways")
+MQTT_INSTALL_TOPIC: Final = "smart_gateways/install_update"
+MQTT_INSTALL_PAYLOAD: Final = "yes"
+
+ISSUE_LEGACY_YAML: Final = "legacy_yaml_entities"
+LEGACY_UNIQUE_ID_PREFIX: Final = "kamstir_"

@@ -1,0 +1,244 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a Kamst-IR gateway",
+        "description": "Enter the gateway's address. Each gateway becomes its own device.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "name": "Name",
+          "meter_type": "Meter type",
+          "mode": "Connection mode"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the gateway.",
+          "port": "Web server port of the gateway, normally 82.",
+          "name": "Device name in Home Assistant, for example \"Kamstrup K1\".",
+          "meter_type": "Decides which sensors are enabled by default. You can enable any sensor later.",
+          "mode": "REST polls the gateway. MQTT receives the values the gateway publishes to your MQTT broker."
+        }
+      },
+      "mqtt": {
+        "title": "MQTT topic prefix",
+        "description": "Enter the topic base the gateway publishes under: the part before `/reading/…` and `/smart_gateways/…`. If the PREFIX field in the gateway's web UI is blank this is `kamstir`. Each gateway needs its own, for example `{example}`.",
+        "data": {
+          "mqtt_prefix": "Topic prefix"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure the gateway",
+        "description": "Change the gateway's address or MQTT prefix. Entities and history are kept.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "mqtt_prefix": "Topic prefix"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot reach the gateway. Check the host and port.",
+      "invalid_response": "The device answered, but not like a Kamst-IR gateway (no JSON readings or no MAC address).",
+      "invalid_prefix": "Enter a topic prefix without the wildcards + or #.",
+      "unknown": "Unexpected error. See the log for details.",
+      "prefix_in_use": "Another gateway already uses this topic prefix."
+    },
+    "abort": {
+      "already_configured": "This gateway is already configured.",
+      "mqtt_not_configured": "Set up the MQTT integration first, then add the gateway again.",
+      "wrong_device": "That address belongs to a different gateway (the MAC address does not match).",
+      "reconfigure_successful": "The gateway was reconfigured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Gateway options",
+        "description": "MQTT topic prefix example: `{example}`.",
+        "data": {
+          "scan_interval": "Scan interval",
+          "mode": "Connection mode",
+          "mqtt_prefix": "Topic prefix"
+        },
+        "data_description": {
+          "scan_interval": "REST mode only. The gateway reads the meter optically at its own interval, so polling faster than that adds nothing.",
+          "mode": "REST polls the gateway. MQTT receives the values the gateway publishes.",
+          "mqtt_prefix": "Required for MQTT mode. `kamstir` if the gateway's PREFIX field is blank."
+        }
+      }
+    },
+    "error": {
+      "invalid_prefix": "Enter a topic prefix without the wildcards + or #.",
+      "mqtt_not_configured": "Set up the MQTT integration first.",
+      "prefix_in_use": "Another gateway already uses this topic prefix."
+    }
+  },
+  "selector": {
+    "meter_type": {
+      "options": {
+        "heat": "Heat meter",
+        "water": "Water meter"
+      }
+    },
+    "mode": {
+      "options": {
+        "rest": "REST polling",
+        "mqtt": "MQTT push"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connected": {
+        "name": "Connected"
+      },
+      "mqtt_configured": {
+        "name": "MQTT configured"
+      }
+    },
+    "sensor": {
+      "heat_energy": {
+        "name": "Heat energy"
+      },
+      "cooling_energy": {
+        "name": "Cooling energy"
+      },
+      "power": {
+        "name": "Power"
+      },
+      "temp1": {
+        "name": "Supply temperature"
+      },
+      "temp2": {
+        "name": "Return temperature"
+      },
+      "tempdiff": {
+        "name": "Temperature difference"
+      },
+      "flow": {
+        "name": "Flow"
+      },
+      "volume": {
+        "name": "Volume"
+      },
+      "hourcounter": {
+        "name": "Operating hours"
+      },
+      "infoevent": {
+        "name": "Info code"
+      },
+      "water_temp": {
+        "name": "Water temperature"
+      },
+      "meter_temp": {
+        "name": "Meter temperature"
+      },
+      "battery_days_left": {
+        "name": "Battery days left"
+      },
+      "leak_burst": {
+        "name": "Leak / burst"
+      },
+      "temp1xm3": {
+        "name": "Temp × volume (supply)"
+      },
+      "temp2xm3": {
+        "name": "Temp × volume (return)"
+      },
+      "minflow_m": {
+        "name": "Min flow (month)"
+      },
+      "maxflow_m": {
+        "name": "Max flow (month)"
+      },
+      "minpower_m": {
+        "name": "Min power (month)"
+      },
+      "maxpower_m": {
+        "name": "Max power (month)"
+      },
+      "avgtemp1_m": {
+        "name": "Average supply temperature (month)"
+      },
+      "avgtemp2_m": {
+        "name": "Average return temperature (month)"
+      },
+      "minflowdate_m": {
+        "name": "Min flow date (month)"
+      },
+      "maxflowdate_m": {
+        "name": "Max flow date (month)"
+      },
+      "minpowerdate_m": {
+        "name": "Min power date (month)"
+      },
+      "maxpowerdate_m": {
+        "name": "Max power date (month)"
+      },
+      "minflow_y": {
+        "name": "Min flow (year)"
+      },
+      "maxflow_y": {
+        "name": "Max flow (year)"
+      },
+      "minpower_y": {
+        "name": "Min power (year)"
+      },
+      "maxpower_y": {
+        "name": "Max power (year)"
+      },
+      "avgtemp1_y": {
+        "name": "Average supply temperature (year)"
+      },
+      "avgtemp2_y": {
+        "name": "Average return temperature (year)"
+      },
+      "minflowdate_y": {
+        "name": "Min flow date (year)"
+      },
+      "maxflowdate_y": {
+        "name": "Max flow date (year)"
+      },
+      "minpowerdate_y": {
+        "name": "Min power date (year)"
+      },
+      "maxpowerdate_y": {
+        "name": "Max power date (year)"
+      },
+      "wifi_rssi": {
+        "name": "WiFi signal"
+      },
+      "startup_time": {
+        "name": "Last restart"
+      },
+      "mqtt_server": {
+        "name": "MQTT server"
+      },
+      "meter_clock": {
+        "name": "Meter clock"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
+      }
+    }
+  },
+  "exceptions": {
+    "install_needs_mqtt": {
+      "message": "Firmware can only be installed when the gateway is connected in MQTT mode."
+    },
+    "restart_failed": {
+      "message": "Could not restart the gateway: {error}"
+    },
+    "restart_auth_required": {
+      "message": "The gateway asked for a login to restart. Restart it from its web UI instead."
+    }
+  },
+  "issues": {
+    "legacy_yaml_entities": {
+      "title": "Old Kamst-IR YAML sensors still exist",
+      "description": "{count} entities from the old MQTT YAML package still exist: {entities}.\n\nThe Kamst-IR Gateway integration now provides these sensors. Delete the gateway's packages file (for example `packages/kamstir_k1.yaml`) and restart Home Assistant, so you don't end up with duplicate sensors. Nothing is deleted automatically."
+    }
+  }
+}
