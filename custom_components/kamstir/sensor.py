@@ -23,7 +23,8 @@ from homeassistant.const import (
     UnitOfVolume,
     UnitOfVolumeFlowRate,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
@@ -32,6 +33,7 @@ from .const import (
     CONF_ENERGY_UNIT,
     CONF_METER_TYPE,
     DEFAULT_ENERGY_UNIT,
+    DOMAIN,
     ENERGY_UNIT_GJ,
     ENERGY_UNIT_KWH,
     ENERGY_UNIT_MWH,
@@ -242,6 +244,7 @@ async def async_setup_entry(
     data = coordinator.data or {}
     meter_type = entry.data.get(CONF_METER_TYPE, METER_HEAT)
     energy_unit = merged_config(entry).get(CONF_ENERGY_UNIT, DEFAULT_ENERGY_UNIT)
+    _async_reset_energy_display_unit(hass, coordinator.mac, energy_unit)
     # Create every known field the payload carries. With no payload yet (MQTT
     # mode, gateway not answering REST) create them all.
     async_add_entities(
@@ -249,6 +252,36 @@ async def async_setup_entry(
         for description in SENSORS
         if not data or description.exists_fn(data)
     )
+
+
+def _energy_unit(energy_unit: str) -> tuple[str, int]:
+    return _ENERGY_UNITS.get(energy_unit, _ENERGY_UNITS[DEFAULT_ENERGY_UNIT])
+
+
+@callback
+def _async_reset_energy_display_unit(
+    hass: HomeAssistant, mac: str, energy_unit: str
+) -> None:
+    """Show energy in the configured unit, not the unit the entity had before.
+
+    When a sensor's native unit changes, HA stores the old unit as the
+    suggested display unit and converts to it. Here the unit is a setting
+    that says what the meter really sends, so the old unit is wrong: a value
+    sent in MWh would be shown converted to GJ. A display unit the user chose
+    in the entity settings is kept.
+    """
+    registry = er.async_get(hass)
+    unit, _ = _energy_unit(energy_unit)
+    private_key = "sensor.private"
+    for key in _ENERGY_KEYS:
+        entity_id = registry.async_get_entity_id("sensor", DOMAIN, f"{mac}_{key}")
+        if entity_id is None or (entry := registry.async_get(entity_id)) is None:
+            continue
+        private = dict(entry.options.get(private_key) or {})
+        if private.get("suggested_unit_of_measurement") == unit:
+            continue
+        private["suggested_unit_of_measurement"] = unit
+        registry.async_update_entity_options(entity_id, private_key, private)
 
 
 class KamstirSensor(KamstirEntity, SensorEntity):
@@ -270,9 +303,7 @@ class KamstirSensor(KamstirEntity, SensorEntity):
             meter_type in description.enabled_for
         )
         if description.key in _ENERGY_KEYS:
-            unit, precision = _ENERGY_UNITS.get(
-                energy_unit, _ENERGY_UNITS[DEFAULT_ENERGY_UNIT]
-            )
+            unit, precision = _energy_unit(energy_unit)
             self._attr_native_unit_of_measurement = unit
             self._attr_suggested_display_precision = precision
 

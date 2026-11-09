@@ -365,3 +365,60 @@ async def test_energy_unit_option(
     state = hass.states.get(entity_id)
     assert state.state == "1234.567"
     assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == unit
+
+
+async def test_energy_unit_change_keeps_meter_value(
+    hass: HomeAssistant,
+    mock_gateway: AiohttpClientMocker,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """An entity that was GJ before shows the raw value in the new unit.
+
+    HA would otherwise keep GJ as display unit and convert MWh to it.
+    """
+    entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        f"{MAC}_heat_energy",
+        suggested_object_id="kamstrup_k1_heat_energy",
+        unit_of_measurement="GJ",
+    )
+    await setup_entry(hass, make_entry())
+
+    state = hass.states.get("sensor.kamstrup_k1_heat_energy")
+    assert state.state == "1234.567"
+    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == "MWh"
+
+
+async def test_energy_unit_option_change(
+    hass: HomeAssistant,
+    mock_gateway: AiohttpClientMocker,
+) -> None:
+    """Changing the energy unit option relabels the value without converting."""
+    entry = await setup_entry(hass, make_entry())
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, "energy_unit": "gj"}
+    )
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    state = hass.states.get("sensor.kamstrup_k1_heat_energy")
+    assert state.state == "1234.567"
+    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == "GJ"
+
+
+async def test_energy_user_display_unit_is_kept(
+    hass: HomeAssistant,
+    mock_gateway: AiohttpClientMocker,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """A display unit chosen in the entity settings still converts."""
+    await setup_entry(hass, make_entry())
+    entity_registry.async_update_entity_options(
+        "sensor.kamstrup_k1_heat_energy", "sensor", {"unit_of_measurement": "kWh"}
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get("sensor.kamstrup_k1_heat_energy")
+    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == "kWh"
+    assert float(state.state) == 1234567
