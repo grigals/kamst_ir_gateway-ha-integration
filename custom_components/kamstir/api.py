@@ -13,6 +13,7 @@ from datetime import UTC, date, datetime, time
 from enum import StrEnum
 import json
 import logging
+import math
 import re
 from typing import Any
 
@@ -136,12 +137,24 @@ def _whole_number(value: str) -> str:
     return match.group(1) if match else value
 
 
+def _parse_number(value: str) -> float | None:
+    """Parse a finite number.
+
+    ``float()`` also accepts ``nan``, ``inf`` and overflowing exponents; Home
+    Assistant refuses to add a sensor with such a state, so they count as
+    unparsable.
+    """
+    try:
+        number = float(value)
+    except ValueError:
+        return None
+    return number if math.isfinite(number) else None
+
+
 def _parse_days(value: str) -> float | None:
     """Parse ``"2 years and 45 days"`` (or a plain number) into days."""
-    try:
-        return float(value)
-    except ValueError:
-        pass
+    if (number := _parse_number(value)) is not None:
+        return number
     match = re.fullmatch(
         r"(?:(\d+)\s*years?)?\s*(?:and\s*)?(?:(\d+)\s*days?)?", value.lower()
     )
@@ -220,10 +233,7 @@ class KamstirParser:
         result: Any
         match field_type:
             case FieldType.NUMBER:
-                try:
-                    result = float(value)
-                except ValueError:
-                    result = None
+                result = _parse_number(value)
             case FieldType.BOOL:
                 result = {"true": True, "false": False}.get(value.lower())
             case FieldType.FIRMWARE:
