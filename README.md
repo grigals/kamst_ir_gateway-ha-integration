@@ -87,6 +87,7 @@ this integration doesn't use.
   meter optically at its own interval, so polling faster than that adds nothing.
 - **Reconfigure** changes the host, port or prefix without losing entities or
   history. It refuses an address that belongs to a different gateway.
+- **Configure** also turns on [cost tracking](#cost-tracking).
 
 ## Entities
 
@@ -126,6 +127,89 @@ and *Volume* of a water meter under **Water consumption**.
 A value the meter hasn't sent yet (`""` or `"-"`) shows as *unknown*. When the
 gateway can't be reached, entities show *unavailable* and *Connected* turns
 off. In MQTT mode that happens after 10 minutes without data.
+
+## Cost tracking
+
+Cost tracking is optional and off by default. Turn it on under *Configure*. It
+adds a cost sensor that multiplies what the meter counts by a price: *Heat
+cost* for a heat meter (from *Heat energy*), *Water cost* for a water meter
+(from *Volume*). The cost is in Home Assistant's currency.
+
+### The price
+
+Without a price entity the integration keeps the price itself. Three entities
+appear under *Configuration* on the device page:
+
+| Entity | What it is |
+|---|---|
+| *Heat price* | The current price, per unit of the meter reading (for example EUR/MWh). Enter it including VAT. |
+| *Next heat price* | The price of the next tariff. |
+| *Next heat price from* | The day the next tariff starts. |
+
+At midnight on that day *Next heat price* becomes *Heat price* and the other
+two are cleared. Both must be set for that to happen. A water meter has the
+same three with *water* in the name and a price per m³.
+
+If you already have the price as an entity, pick it as **Price entity** under
+*Configure*. Sensors, numbers and number helpers work. The three entities above
+are then not created. A unit like `EUR/kWh` is converted to the meter's unit;
+without a unit the price is taken as per unit of the meter reading. While the
+price entity is unavailable its last value is used.
+
+### How the cost is counted
+
+Each new meter reading adds *(reading − previous reading) × price*.
+
+- What is used while no price is set costs nothing, also not later.
+- What is used while Home Assistant is off or the gateway can't be reached is
+  priced when the next reading arrives, at the price of that moment. If a
+  price change fell in between, the amount is split by time.
+- Changing the price never changes cost that was already counted.
+- A reading lower than the last one is ignored. After three in a row it is
+  taken as a new meter, and counting carries on from there.
+- Fixed fees are not included.
+
+The sensor's state is the cost since cost tracking was turned on. Turning cost
+tracking off, or switching to a price entity, leaves the entities it no longer
+uses in place; delete them on the device page if you don't want them.
+
+### History: the backfill action
+
+The cost sensor only counts from the moment it exists. The meter reading
+usually has statistics that go back further. The **Backfill cost** action
+(`kamstir.backfill_cost`) prices those and writes them as the cost sensor's
+history.
+
+1. Turn on cost tracking and set the price.
+2. Open *Developer tools → Actions*, choose **Kamst-IR Gateway: Backfill cost**
+   and pick the gateway.
+3. Press *Perform action*. The response shows the period, the amount used and
+   the cost that was written.
+
+```yaml
+action: kamstir.backfill_cost
+data:
+  device_id: <the gateway>
+  price: 85            # optional, default: the current price
+  start: "2026-01-01"  # optional, default: the oldest statistics
+  end: "2026-11-26"    # optional, this day is not included
+```
+
+Hours outside `start`–`end` keep the cost they had, and running the action
+again replaces what it wrote. So for several tariffs, run it once per period
+with that period's price. Without `end` it prices up to the last full hour.
+
+Things to know:
+
+- The history is in the long-term **statistics** (hourly), not in the state
+  history. Use statistics cards (*Statistics graph*, *Statistic*, or
+  apexcharts-card with `statistics:`) and show the **change** per period.
+- The sensor's state does not jump: it stays the cost since tracking was turned
+  on. For the same reason the `sum` of the backfilled hours is below the
+  sensor's and usually negative. Only the differences between rows mean
+  anything, and those are the cost of each hour.
+- It needs at least two hours of statistics of the meter sensor, and goes back
+  as far as those do.
 
 ## Migrating from the YAML packages
 

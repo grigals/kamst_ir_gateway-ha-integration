@@ -15,6 +15,9 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SCAN_INTER
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    BooleanSelector,
+    EntitySelector,
+    EntitySelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -27,10 +30,12 @@ import voluptuous as vol
 
 from .api import CannotConnect, InvalidResponse, KamstirClient, normalize_mac
 from .const import (
+    CONF_COST_TRACKING,
     CONF_ENERGY_UNIT,
     CONF_METER_TYPE,
     CONF_MODE,
     CONF_MQTT_PREFIX,
+    CONF_PRICE_ENTITY,
     DEFAULT_ENERGY_UNIT,
     DEFAULT_MQTT_PREFIX,
     DEFAULT_NAME,
@@ -45,6 +50,7 @@ from .const import (
     MODE_MQTT,
     MODE_REST,
     MODES,
+    PRICE_ENTITY_DOMAINS,
 )
 from .coordinator import merged_config
 
@@ -74,6 +80,9 @@ MODE_SELECTOR = SelectSelector(
     SelectSelectorConfig(
         options=list(MODES), translation_key=CONF_MODE, mode=SelectSelectorMode.LIST
     )
+)
+PRICE_ENTITY_SELECTOR = EntitySelector(
+    EntitySelectorConfig(domain=list(PRICE_ENTITY_DOMAINS))
 )
 SCAN_SELECTOR = NumberSelector(
     NumberSelectorConfig(
@@ -299,7 +308,7 @@ class KamstirConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class KamstirOptionsFlow(OptionsFlowWithReload):
-    """Scan interval, transport and MQTT prefix."""
+    """Scan interval, transport, MQTT prefix and cost tracking."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -314,7 +323,10 @@ class KamstirOptionsFlow(OptionsFlowWithReload):
                 CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
                 CONF_MODE: mode,
                 CONF_ENERGY_UNIT: user_input[CONF_ENERGY_UNIT],
+                CONF_COST_TRACKING: bool(user_input.get(CONF_COST_TRACKING)),
             }
+            if price_entity := user_input.get(CONF_PRICE_ENTITY):
+                options[CONF_PRICE_ENTITY] = price_entity
             raw_prefix = user_input.get(CONF_MQTT_PREFIX)
             prefix = clean_prefix(raw_prefix)
             if prefix is not None:
@@ -346,6 +358,14 @@ class KamstirOptionsFlow(OptionsFlowWithReload):
                     CONF_MQTT_PREFIX,
                     description={"suggested_value": values.get(CONF_MQTT_PREFIX)},
                 ): TextSelector(),
+                vol.Required(
+                    CONF_COST_TRACKING,
+                    default=bool(values.get(CONF_COST_TRACKING)),
+                ): BooleanSelector(),
+                vol.Optional(
+                    CONF_PRICE_ENTITY,
+                    description={"suggested_value": values.get(CONF_PRICE_ENTITY)},
+                ): PRICE_ENTITY_SELECTOR,
             }
         )
         return self.async_show_form(

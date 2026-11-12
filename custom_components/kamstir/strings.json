@@ -61,13 +61,17 @@
           "scan_interval": "Scan interval",
           "energy_unit": "Energy unit",
           "mode": "Connection mode",
-          "mqtt_prefix": "Topic prefix"
+          "mqtt_prefix": "Topic prefix",
+          "cost_tracking": "Cost tracking",
+          "price_entity": "Price entity"
         },
         "data_description": {
           "scan_interval": "REST mode only. The gateway reads the meter optically at its own interval, so polling faster than that adds nothing.",
           "energy_unit": "The unit shown on the meter display. The gateway passes the meter's value on as-is, so this must match the meter.",
           "mode": "REST polls the gateway. MQTT receives the values the gateway publishes.",
-          "mqtt_prefix": "Required for MQTT mode. `kamstir` if the gateway's PREFIX field is blank."
+          "mqtt_prefix": "Required for MQTT mode. `kamstir` if the gateway's PREFIX field is blank.",
+          "cost_tracking": "Adds a cost sensor: heat energy (water volume for a water meter) times a price. Turning it off later keeps the entities and their history.",
+          "price_entity": "Optional. An entity whose state is the price, for example an input number. Leave empty to set the price on the device page, where you can also schedule the next price."
         }
       }
     },
@@ -105,6 +109,28 @@
       },
       "mqtt_configured": {
         "name": "MQTT configured"
+      }
+    },
+    "date": {
+      "next_heat_price_date": {
+        "name": "Next heat price from"
+      },
+      "next_water_price_date": {
+        "name": "Next water price from"
+      }
+    },
+    "number": {
+      "heat_price": {
+        "name": "Heat price"
+      },
+      "next_heat_price": {
+        "name": "Next heat price"
+      },
+      "water_price": {
+        "name": "Water price"
+      },
+      "next_water_price": {
+        "name": "Next water price"
       }
     },
     "sensor": {
@@ -227,6 +253,12 @@
       },
       "meter_clock": {
         "name": "Meter clock"
+      },
+      "heat_cost": {
+        "name": "Heat cost"
+      },
+      "water_cost": {
+        "name": "Water cost"
       }
     },
     "update": {
@@ -244,12 +276,57 @@
     },
     "restart_auth_required": {
       "message": "The gateway asked for a login to restart. Restart it from its web UI instead."
+    },
+    "backfill_no_gateway": {
+      "message": "Pick a Kamst-IR gateway that is set up and loaded."
+    },
+    "backfill_no_recorder": {
+      "message": "The Recorder integration is not running, so there are no statistics to backfill."
+    },
+    "backfill_cost_tracking_off": {
+      "message": "Cost tracking is turned off for this gateway. Turn it on under Configure first."
+    },
+    "backfill_no_entity": {
+      "message": "The meter sensor or the cost sensor of this gateway does not exist. Make sure cost tracking is on and the meter sensor is enabled."
+    },
+    "backfill_no_price": {
+      "message": "No price is set. Set the price first, or pass a price to the action."
+    },
+    "backfill_bad_range": {
+      "message": "The start date must be before the end date."
+    },
+    "backfill_no_statistics": {
+      "message": "{entity_id} has no hourly statistics in that period yet. Statistics need at least two full hours of data."
     }
   },
   "issues": {
     "legacy_yaml_entities": {
       "title": "Old Kamst-IR YAML sensors still exist",
       "description": "{count} entities from the old MQTT YAML package still exist: {entities}.\n\nThe Kamst-IR Gateway integration now provides these sensors. Delete the gateway's packages file (for example `packages/kamstir_k1.yaml`) and restart Home Assistant, so you don't end up with duplicate sensors. Nothing is deleted automatically."
+    }
+  },
+  "services": {
+    "backfill_cost": {
+      "name": "Backfill cost",
+      "description": "Prices the meter's existing hourly statistics and writes the result as the cost sensor's history. Hours outside the chosen period keep their cost, and running it again replaces what it wrote before.",
+      "fields": {
+        "device_id": {
+          "name": "Gateway",
+          "description": "The gateway whose cost history to fill."
+        },
+        "price": {
+          "name": "Price",
+          "description": "Price per unit of the meter reading (per MWh, GJ, kWh or m³). Leave empty to use the current price."
+        },
+        "start": {
+          "name": "Start",
+          "description": "First day to price. Leave empty to start at the oldest statistics."
+        },
+        "end": {
+          "name": "End",
+          "description": "Price up to this day, not including it. Leave empty to price up to the last full hour."
+        }
+      }
     }
   }
 }

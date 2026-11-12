@@ -16,10 +16,12 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 )
 
 from custom_components.kamstir.const import (
+    CONF_COST_TRACKING,
     CONF_ENERGY_UNIT,
     CONF_METER_TYPE,
     CONF_MODE,
     CONF_MQTT_PREFIX,
+    CONF_PRICE_ENTITY,
     DOMAIN,
     ENERGY_UNIT_GJ,
     ENERGY_UNIT_MWH,
@@ -342,6 +344,7 @@ async def test_options_rest(
         CONF_SCAN_INTERVAL: 120,
         CONF_ENERGY_UNIT: ENERGY_UNIT_GJ,
         CONF_MODE: MODE_REST,
+        CONF_COST_TRACKING: False,
     }
     await hass.async_block_till_done()
     assert entry.runtime_data.update_interval.total_seconds() == 120
@@ -391,3 +394,40 @@ async def test_user_energy_unit(
         result["flow_id"], user_input(**{CONF_ENERGY_UNIT: ENERGY_UNIT_GJ})
     )
     assert result["options"][CONF_ENERGY_UNIT] == ENERGY_UNIT_GJ
+
+
+async def test_options_cost_tracking(
+    hass: HomeAssistant, mock_gateway: AiohttpClientMocker
+) -> None:
+    """Cost tracking and the price entity are stored, and can be cleared."""
+    entry = await setup_entry(hass, make_entry())
+    base = {CONF_SCAN_INTERVAL: 60, CONF_MODE: MODE_REST}
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    schema = result["data_schema"].schema
+    assert CONF_COST_TRACKING in schema
+    assert CONF_PRICE_ENTITY in schema
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            **base,
+            CONF_COST_TRACKING: True,
+            CONF_PRICE_ENTITY: "input_number.heat_price",
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_COST_TRACKING] is True
+    assert entry.options[CONF_PRICE_ENTITY] == "input_number.heat_price"
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.kamstrup_k1_heat_cost") is not None
+    assert hass.states.get("number.kamstrup_k1_heat_price") is None
+
+    # Leaving the price entity empty switches to the integration's own price.
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**base, CONF_COST_TRACKING: True}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert CONF_PRICE_ENTITY not in entry.options
+    await hass.async_block_till_done()
+    assert hass.states.get("number.kamstrup_k1_heat_price") is not None

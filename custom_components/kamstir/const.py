@@ -21,6 +21,17 @@ ENERGY_UNIT_KWH: Final = "kwh"
 ENERGY_UNITS: Final = (ENERGY_UNIT_MWH, ENERGY_UNIT_GJ, ENERGY_UNIT_KWH)
 DEFAULT_ENERGY_UNIT: Final = ENERGY_UNIT_MWH
 
+# Cost tracking (optional): a running cost total from the meter reading and a
+# price. The price comes from the integration's own price entities, or from an
+# entity the user picks.
+CONF_COST_TRACKING: Final = "cost_tracking"
+CONF_PRICE_ENTITY: Final = "price_entity"
+PRICE_ENTITY_DOMAINS: Final = ("sensor", "number", "input_number")
+# A reading below the last one is ignored until it has been seen this many
+# times in a row; only then does it count as a replaced or reset meter.
+COST_RESET_CONFIRMATIONS: Final = 3
+SERVICE_BACKFILL_COST: Final = "backfill_cost"
+
 METER_HEAT: Final = "heat"
 METER_WATER: Final = "water"
 METER_TYPES: Final = (METER_HEAT, METER_WATER)

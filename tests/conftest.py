@@ -79,11 +79,17 @@ def make_entry(
     prefix: str | None = None,
     scan_interval: int = 60,
     energy_unit: str | None = None,
+    cost_tracking: bool = False,
+    price_entity: str | None = None,
 ) -> MockConfigEntry:
     """Build a config entry like the config flow creates."""
     options: dict[str, Any] = {CONF_SCAN_INTERVAL: scan_interval, CONF_MODE: mode}
     if energy_unit is not None:
         options["energy_unit"] = energy_unit
+    if cost_tracking:
+        options["cost_tracking"] = True
+    if price_entity is not None:
+        options["price_entity"] = price_entity
     if mode == MODE_MQTT:
         options[CONF_MQTT_PREFIX] = prefix or PREFIX
     return MockConfigEntry(

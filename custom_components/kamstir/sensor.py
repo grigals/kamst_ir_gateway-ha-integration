@@ -26,12 +26,15 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.restore_state import ExtraStoredData, RestoreEntity
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_ENERGY_UNIT,
     CONF_METER_TYPE,
+    CONF_PRICE_ENTITY,
+    COST_RESET_CONFIRMATIONS,
     DEFAULT_ENERGY_UNIT,
     DOMAIN,
     ENERGY_UNIT_GJ,
@@ -41,6 +44,13 @@ from .const import (
     METER_WATER,
 )
 from .coordinator import KamstirConfigEntry, KamstirCoordinator, merged_config
+from .cost import (
+    CostSpec,
+    cost_spec,
+    cost_tracking_enabled,
+    entity_price,
+    finite,
+)
 from .entity import KamstirEntity
 
 PARALLEL_UPDATES = 0
@@ -247,11 +257,22 @@ async def async_setup_entry(
     _async_reset_energy_display_unit(hass, coordinator.mac, energy_unit)
     # Create every known field the payload carries. With no payload yet (MQTT
     # mode, gateway not answering REST) create them all.
-    async_add_entities(
+    entities: list[SensorEntity] = [
         KamstirSensor(coordinator, description, meter_type, energy_unit)
         for description in SENSORS
         if not data or description.exists_fn(data)
-    )
+    ]
+    conf = merged_config(entry)
+    if cost_tracking_enabled(conf):
+        entities.append(
+            KamstirCostSensor(
+                coordinator,
+                cost_spec(conf),
+                hass.config.currency,
+                conf.get(CONF_PRICE_ENTITY),
+            )
+        )
+    async_add_entities(entities)
 
 
 def _energy_unit(energy_unit: str) -> tuple[str, int]:
@@ -311,3 +332,149 @@ class KamstirSensor(KamstirEntity, SensorEntity):
     def native_value(self) -> StateType | datetime:
         """Return the parsed value; None shows as unknown."""
         return self.entity_description.value_fn(self.coordinator.data or {})
+
+
+@dataclass
+class CostData(ExtraStoredData):
+    """What the cost sensor keeps across restarts."""
+
+    total: float = 0.0
+    # When the total started from zero. Reported as last_reset, so that a
+    # total that had to start over is a new cycle in the statistics instead
+    # of a drop.
+    since: datetime | None = None
+    # The meter reading up to which consumption has been priced.
+    last_reading: float | None = None
+    last_time: datetime | None = None
+    # Last usable value of the user's price entity, per unit of the reading.
+    last_price: float | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the stored form."""
+        return {
+            "total": self.total,
+            "since": self.since.isoformat() if self.since else None,
+            "last_reading": self.last_reading,
+            "last_time": self.last_time.isoformat() if self.last_time else None,
+            "last_price": self.last_price,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> CostData:
+        """Read the stored form, ignoring anything unusable."""
+        last_time = data.get("last_time")
+        since = data.get("since")
+        total = finite(data.get("total"))
+        return cls(
+            total=total or 0.0,
+            # Without a usable total the count starts over, from now.
+            since=(
+                dt_util.parse_datetime(since)
+                if isinstance(since, str) and total is not None
+                else None
+            ),
+            last_reading=finite(data.get("last_reading")),
+            last_time=(
+                dt_util.parse_datetime(last_time)
+                if isinstance(last_time, str)
+                else None
+            ),
+            last_price=finite(data.get("last_price")),
+        )
+
+
+class KamstirCostSensor(KamstirEntity, RestoreEntity, SensorEntity):
+    """Running cost: growth of the meter reading times the price in force.
+
+    The state counts from the moment cost tracking was turned on. Each new
+    reading adds (reading - last reading) x price. A missing reading adds
+    nothing and keeps the last reading, so the consumption is priced once the
+    meter answers again.
+    """
+
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_suggested_display_precision = 2
+
+    def __init__(
+        self,
+        coordinator: KamstirCoordinator,
+        spec: CostSpec,
+        currency: str,
+        price_entity: str | None,
+    ) -> None:
+        """Initialise the sensor."""
+        super().__init__(coordinator, spec.cost_key)
+        self._attr_translation_key = spec.cost_key
+        self._attr_native_unit_of_measurement = currency
+        self._spec = spec
+        self._price_entity = price_entity
+        self._cost = CostData()
+        self._low_readings = 0
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the total, then price what was used while HA was down."""
+        await super().async_added_to_hass()
+        if (stored := await self.async_get_last_extra_data()) is not None:
+            self._cost = CostData.from_dict(stored.as_dict())
+        if self._cost.since is None:
+            self._cost.since = dt_util.utcnow()
+        self._accrue()
+
+    @property
+    def available(self) -> bool:
+        """The total stays known while the gateway is unreachable."""
+        return True
+
+    @property
+    def native_value(self) -> float:
+        """Return the cost so far."""
+        return round(self._cost.total, 5)
+
+    @property
+    def last_reset(self) -> datetime | None:
+        """Return when the total started from zero."""
+        return self._cost.since
+
+    @property
+    def extra_restore_state_data(self) -> CostData:
+        """Return what to keep across restarts."""
+        return self._cost
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self._accrue()
+        super()._handle_coordinator_update()
+
+    def _price(self, since: datetime | None, now: datetime) -> float | None:
+        """Return the price for consumption between two readings."""
+        if self._price_entity is None:
+            prices = self.coordinator.prices
+            return prices.average_price(since, now) if prices else None
+        # A price entity that is briefly unavailable keeps its last value.
+        price = entity_price(self.hass, self._price_entity, self._spec.unit)
+        if price is not None:
+            self._cost.last_price = price
+        return self._cost.last_price
+
+    @callback
+    def _accrue(self) -> None:
+        """Price the consumption since the last reading."""
+        reading = finite((self.coordinator.data or {}).get(self._spec.source_key))
+        if reading is None:
+            return
+        cost = self._cost
+        now = dt_util.utcnow()
+        # Read the price on every reading, so the last value of a price
+        # entity is remembered even while nothing is being used.
+        price = self._price(cost.last_time, now)
+        if cost.last_reading is not None and reading < cost.last_reading:
+            # A single low value is more likely a bad read than a new meter.
+            self._low_readings += 1
+            if self._low_readings < COST_RESET_CONFIRMATIONS:
+                return
+        elif cost.last_reading is not None and price is not None:
+            cost.total += (reading - cost.last_reading) * price
+        self._low_readings = 0
+        cost.last_reading = reading
+        cost.last_time = now

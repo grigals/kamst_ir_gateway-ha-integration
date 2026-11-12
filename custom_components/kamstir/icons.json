@@ -18,10 +18,25 @@
       "maxflowdate_y": { "default": "mdi:calendar" },
       "minpowerdate_y": { "default": "mdi:calendar" },
       "maxpowerdate_y": { "default": "mdi:calendar" },
-      "mqtt_server": { "default": "mdi:server-network" }
+      "mqtt_server": { "default": "mdi:server-network" },
+      "heat_cost": { "default": "mdi:cash-multiple" },
+      "water_cost": { "default": "mdi:cash-multiple" }
+    },
+    "number": {
+      "heat_price": { "default": "mdi:cash" },
+      "next_heat_price": { "default": "mdi:cash-clock" },
+      "water_price": { "default": "mdi:cash" },
+      "next_water_price": { "default": "mdi:cash-clock" }
+    },
+    "date": {
+      "next_heat_price_date": { "default": "mdi:calendar-clock" },
+      "next_water_price_date": { "default": "mdi:calendar-clock" }
     },
     "binary_sensor": {
       "mqtt_configured": { "default": "mdi:lan-connect" }
     }
+  },
+  "services": {
+    "backfill_cost": { "service": "mdi:history" }
   }
 }

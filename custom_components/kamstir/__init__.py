@@ -7,11 +7,14 @@ from datetime import timedelta
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import (
+    config_validation as cv,
     device_registry as dr,
     entity_registry as er,
     issue_registry as ir,
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
+from homeassistant.helpers.typing import ConfigType
 
 from .api import KamstirClient
 from .const import (
@@ -31,13 +34,25 @@ from .coordinator import (
     RestCoordinator,
     merged_config,
 )
+from .cost import STORAGE_VERSION, PriceSchedule, storage_key, uses_own_prices
+from .services import async_setup_services
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
+    Platform.DATE,
+    Platform.NUMBER,
     Platform.SENSOR,
     Platform.UPDATE,
 ]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register the integration's actions."""
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: KamstirConfigEntry) -> bool:
@@ -61,6 +76,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: KamstirConfigEntry) -> b
         # Raises ConfigEntryNotReady when the gateway is down; HA retries.
         await coordinator.async_config_entry_first_refresh()
 
+    if uses_own_prices(conf):
+        prices = PriceSchedule(hass, entry.entry_id)
+        await prices.async_load()
+        entry.async_on_unload(prices.async_cancel)
+        coordinator.prices = prices
+
     entry.runtime_data = coordinator
     entry.async_on_unload(
         coordinator.async_add_listener(lambda: _async_update_device(hass, coordinator))
@@ -73,7 +94,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: KamstirConfigEntry) -> b
 
 async def async_unload_entry(hass: HomeAssistant, entry: KamstirConfigEntry) -> bool:
     """Unload one gateway."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded and (prices := entry.runtime_data.prices) is not None:
+        await prices.async_unload()
+    return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: KamstirConfigEntry) -> None:
+    """Delete the stored prices of a removed gateway."""
+    await Store(hass, STORAGE_VERSION, storage_key(entry.entry_id)).async_remove()
 
 
 @callback

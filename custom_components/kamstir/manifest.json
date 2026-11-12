@@ -1,7 +1,7 @@
 {
   "domain": "kamstir",
   "name": "Kamst-IR Gateway",
-  "after_dependencies": ["mqtt"],
+  "after_dependencies": ["mqtt", "recorder"],
   "categories": ["energy.meters_monitoring"],
   "codeowners": ["@grigals"],
   "config_flow": true,

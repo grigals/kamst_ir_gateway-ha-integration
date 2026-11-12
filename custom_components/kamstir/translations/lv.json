@@ -61,13 +61,17 @@
           "scan_interval": "Nolasīšanas intervāls",
           "energy_unit": "Enerģijas mērvienība",
           "mode": "Savienojuma režīms",
-          "mqtt_prefix": "Tēmas prefikss"
+          "mqtt_prefix": "Tēmas prefikss",
+          "cost_tracking": "Izmaksu uzskaite",
+          "price_entity": "Cenas entītija"
         },
         "data_description": {
           "scan_interval": "Tikai REST režīmā. Vārteja nolasa skaitītāju optiski ar savu intervālu, tāpēc biežāka nolasīšana neko nedod.",
           "energy_unit": "Mērvienība, ko rāda skaitītāja displejs. Vārteja nodod skaitītāja vērtību nemainītu, tāpēc tai jāsakrīt ar skaitītāju.",
           "mode": "REST periodiski nolasa vārteju. MQTT saņem vērtības, ko vārteja publicē.",
-          "mqtt_prefix": "Obligāts MQTT režīmā. `kamstir`, ja vārtejas lauks PREFIX ir tukšs."
+          "mqtt_prefix": "Obligāts MQTT režīmā. `kamstir`, ja vārtejas lauks PREFIX ir tukšs.",
+          "cost_tracking": "Pievieno izmaksu sensoru: siltumenerģija (ūdens skaitītājam – ūdens tilpums) reiz cena. Vēlāk izslēdzot, entītijas un to vēsture tiek saglabātas.",
+          "price_entity": "Nav obligāta. Entītija, kuras stāvoklis ir cena, piemēram, skaitļa palīgs. Atstājiet tukšu, lai cenu iestatītu ierīces lapā, kur var arī ieplānot nākamo cenu."
         }
       }
     },
@@ -105,6 +109,28 @@
       },
       "mqtt_configured": {
         "name": "MQTT konfigurēts"
+      }
+    },
+    "date": {
+      "next_heat_price_date": {
+        "name": "Nākamā siltumenerģijas cena no"
+      },
+      "next_water_price_date": {
+        "name": "Nākamā ūdens cena no"
+      }
+    },
+    "number": {
+      "heat_price": {
+        "name": "Siltumenerģijas cena"
+      },
+      "next_heat_price": {
+        "name": "Nākamā siltumenerģijas cena"
+      },
+      "water_price": {
+        "name": "Ūdens cena"
+      },
+      "next_water_price": {
+        "name": "Nākamā ūdens cena"
       }
     },
     "sensor": {
@@ -227,6 +253,12 @@
       },
       "meter_clock": {
         "name": "Skaitītāja pulkstenis"
+      },
+      "heat_cost": {
+        "name": "Siltumenerģijas izmaksas"
+      },
+      "water_cost": {
+        "name": "Ūdens izmaksas"
       }
     },
     "update": {
@@ -244,12 +276,57 @@
     },
     "restart_auth_required": {
       "message": "Vārteja pieprasīja pieteikšanos restartēšanai. Restartējiet to no tās tīmekļa saskarnes."
+    },
+    "backfill_no_gateway": {
+      "message": "Izvēlieties Kamst-IR vārteju, kas ir iestatīta un ielādēta."
+    },
+    "backfill_no_recorder": {
+      "message": "Recorder integrācija nedarbojas, tāpēc nav statistikas, ko aizpildīt."
+    },
+    "backfill_cost_tracking_off": {
+      "message": "Šai vārtejai izmaksu uzskaite ir izslēgta. Vispirms ieslēdziet to sadaļā Konfigurēt."
+    },
+    "backfill_no_entity": {
+      "message": "Šīs vārtejas skaitītāja sensors vai izmaksu sensors nepastāv. Pārliecinieties, ka izmaksu uzskaite ir ieslēgta un skaitītāja sensors ir iespējots."
+    },
+    "backfill_no_price": {
+      "message": "Cena nav iestatīta. Vispirms iestatiet cenu vai norādiet cenu darbībā."
+    },
+    "backfill_bad_range": {
+      "message": "Sākuma datumam jābūt pirms beigu datuma."
+    },
+    "backfill_no_statistics": {
+      "message": "Entītijai {entity_id} šajā periodā vēl nav stundu statistikas. Statistikai vajag vismaz divas pilnas stundas datu."
     }
   },
   "issues": {
     "legacy_yaml_entities": {
       "title": "Vecie Kamst-IR YAML sensori joprojām pastāv",
       "description": "Joprojām pastāv {count} entītijas no vecās MQTT YAML pakotnes: {entities}.\n\nTagad šos sensorus nodrošina Kamst-IR Gateway integrācija. Izdzēsiet vārtejas pakotnes failu (piemēram, `packages/kamstir_k1.yaml`) un restartējiet Home Assistant, lai neveidotos dublēti sensori. Nekas netiek dzēsts automātiski."
+    }
+  },
+  "services": {
+    "backfill_cost": {
+      "name": "Aizpildīt izmaksu vēsturi",
+      "description": "Aprēķina izmaksas pēc skaitītāja esošās stundu statistikas un ieraksta tās kā izmaksu sensora vēsturi. Stundas ārpus izvēlētā perioda saglabā savas izmaksas, un atkārtota palaišana aizstāj iepriekš ierakstīto.",
+      "fields": {
+        "device_id": {
+          "name": "Vārteja",
+          "description": "Vārteja, kuras izmaksu vēsturi aizpildīt."
+        },
+        "price": {
+          "name": "Cena",
+          "description": "Cena par skaitītāja rādījuma vienību (par MWh, GJ, kWh vai m³). Atstājiet tukšu, lai izmantotu pašreizējo cenu."
+        },
+        "start": {
+          "name": "Sākums",
+          "description": "Pirmā diena, kurai aprēķināt izmaksas. Atstājiet tukšu, lai sāktu no vecākās statistikas."
+        },
+        "end": {
+          "name": "Beigas",
+          "description": "Aprēķināt līdz šai dienai, to neieskaitot. Atstājiet tukšu, lai aprēķinātu līdz pēdējai pilnajai stundai."
+        }
+      }
     }
   }
 }

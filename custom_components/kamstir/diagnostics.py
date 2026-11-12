@@ -15,7 +15,7 @@ TO_REDACT = {"mac_address", "mqtt_server", "unique_id"}
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: KamstirConfigEntry
 ) -> dict[str, Any]:
-    """Return the last raw payload, the entry options and the coordinator state."""
+    """Return the raw payload, the entry options, coordinator state and prices."""
     coordinator = entry.runtime_data
     state: dict[str, Any] = {
         "mode": coordinator.mode,
@@ -39,5 +39,6 @@ async def async_get_config_entry_diagnostics(
             "options": dict(entry.options),
         },
         "coordinator": state,
+        "prices": coordinator.prices.as_dict() if coordinator.prices else None,
         "raw": async_redact_data(coordinator.raw, TO_REDACT),
     }

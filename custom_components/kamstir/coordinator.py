@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
@@ -33,6 +33,9 @@ from .const import (
     REST_CONNECTED_FACTOR,
 )
 
+if TYPE_CHECKING:
+    from .cost import PriceSchedule
+
 _LOGGER = logging.getLogger(__name__)
 
 type KamstirConfigEntry = ConfigEntry[KamstirCoordinator]
@@ -44,6 +47,8 @@ class KamstirCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     config_entry: KamstirConfigEntry
     mode: str
     can_install: bool = False
+    # Set while the entry keeps its own price for cost tracking.
+    prices: PriceSchedule | None = None
 
     def __init__(
         self,

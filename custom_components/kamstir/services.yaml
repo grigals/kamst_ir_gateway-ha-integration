@@ -1,0 +1,23 @@
+backfill_cost:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: kamstir
+    price:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 1000000
+          step: any
+          mode: box
+    start:
+      required: false
+      selector:
+        date:
+    end:
+      required: false
+      selector:
+        date:
